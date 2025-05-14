@@ -1,0 +1,56 @@
+version: 1.0
+tasks:
+  # [285, 246]
+  CheckConnection:
+    action: linux.wait_for_ssh
+    input:
+      log_level: DEBUG
+      hostname: <%ctx().ip_address%>
+      port: 22
+      username: <% ctx().user_name %>
+      keyfile: /home/axlai-stackstorm/.ssh/id_ed25519
+      timeout: 60
+    next:
+      - do:
+          - ServiceStatus
+        when: <% succeeded() %>
+        publish:
+          - Connection: <% "Connection Established" %>
+      - do:
+          - Stop
+        when: <% failed() %>
+        publish:
+          - Connection: <% "Connection Not Established" %>
+          - service_status: <% "Cannot check service because no connection" %>
+  # [285, 84]
+  Start:
+    action: core.noop
+    next:
+      - do:
+          - CheckConnection
+  # [284, 569]
+  End:
+    action: core.noop
+  # [283, 419]
+  ServiceStatus:
+    action: core.remote
+    next:
+      - do:
+          - End
+        publish:
+          - service_status: <% result() %>
+    input:
+      cmd: sudo systemctl status <% ctx().service %>
+      hosts: <%ctx().ip_address%>
+      private_key: /home/axlai-stackstorm/.ssh/id_ed25519
+      username: <% ctx().user_name %>
+  # [570, 420]
+  Stop:
+    action: core.noop
+input:
+  - service
+  - ip_address
+  - user_name
+output:
+  - Connection: <%ctx().Connection%>
+  - Service_Status: <%ctx().service_status%>

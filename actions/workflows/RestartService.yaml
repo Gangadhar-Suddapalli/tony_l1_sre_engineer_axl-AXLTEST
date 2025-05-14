@@ -1,0 +1,77 @@
+version: 1.0
+tasks:
+  # [285, 246]
+  CheckConnection:
+    action: linux.wait_for_ssh
+    input:
+      log_level: DEBUG
+      hostname: <%ctx().ip_address%>
+      port: 22
+      username: <% ctx().user_name %>
+      keyfile: /home/axlai-stackstorm/.ssh/id_ed25519
+      timeout: 60
+    next:
+      - do:
+          - ServiceRestart
+        when: <% succeeded() %>
+        publish:
+          - Connection: Connection Established
+      - do:
+          - Stop
+        when: <% failed() %>
+        publish:
+          - Connection: Connection Not Established
+          - service_status: false
+  # [285, 84]
+  Start:
+    action: core.noop
+    next:
+      - do:
+          - CheckConnection
+  # [282, 683]
+  End:
+    action: core.noop
+  # [283, 419]
+  ServiceRestart:
+    action: core.remote
+    input:
+      cmd: sudo systemctl restart <% ctx().service %>
+      hosts: <%ctx().ip_address%>
+      private_key: /home/axlai-stackstorm/.ssh/id_ed25519
+      username: <% ctx().user_name %>
+    next:
+      - do:
+          - RestartVerification
+        when: <% succeeded() %>
+        publish:
+          - Restart_Status: Service Restarted
+      - do:
+          - Stop
+        publish:
+          - Restart_Status: Service not Restarted
+          - service_status: Failed to restart the service
+        when: <% failed() %>
+  # [629, 538]
+  Stop:
+    action: core.noop
+  # [284, 559]
+  RestartVerification:
+    action: core.remote
+    next:
+      - do:
+          - End
+        publish:
+          - service_status: <%result()%>
+    input:
+      cmd: sudo systemctl status <% ctx().service %>
+      hosts: <%ctx().ip_address%>
+      username: <% ctx().user_name %>
+      private_key: /home/axlai-stackstorm/.ssh/id_ed25519
+input:
+  - service
+  - ip_address
+  - user_name
+output:
+  - Connection: <%ctx().Connection%>
+  - Restart_Status: <%ctx().Restart_Status%>
+  - Service_Status: <%ctx().service_status%>

@@ -1,0 +1,16 @@
+pack: tony_l1_sre_engineer_axl
+enabled: true
+runner_type: orquesta
+name: CheckService
+entry_point: workflows/CheckService.yaml
+description: This workflow will first check connection and do service status.
+parameters:
+  service:
+    type: string
+    required: true
+  ip_address:
+    type: string
+    required: true
+  user_name:
+    type: string
+    required: true

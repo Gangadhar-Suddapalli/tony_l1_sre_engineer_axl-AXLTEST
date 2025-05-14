@@ -1,0 +1,16 @@
+pack: tony_l1_sre_engineer_axl
+enabled: true
+runner_type: orquesta
+name: RestartService
+entry_point: workflows/RestartService.yaml
+description: This workflow will restart the service.
+parameters:
+  service:
+    type: string
+    required: true
+  ip_address:
+    type: string
+    required: true
+  user_name:
+    type: string
+    required: true
